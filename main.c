@@ -17,8 +17,8 @@ typedef enum file_type
 bool WriteToFile(const char* input_file, const char* output_file, file_type input_file_type, file_type output_file_type)
 {
     int width, height, channels;
-    unsigned char* data = stbi_load(input_file, &width, &height, &channels, (input_file_type == PNG) ? 4 : 3);
-    if (!data)
+    unsigned char* image_data = stbi_load(input_file, &width, &height, &channels, 0);
+    if (!image_data)
     {
         printf("Error loading file!\n");
         return false;
@@ -26,18 +26,29 @@ bool WriteToFile(const char* input_file, const char* output_file, file_type inpu
     switch(output_file_type)
     {
     case PNG:
-        stbi_write_png(output_file, width, height, channels, data, width*channels);
+    {
+        unsigned char* writing_data = malloc((width*height*4) * sizeof(unsigned char));
+        for (int i = 0; i < width*height*3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+                writing_data[j+i] = image_data[j+i];
+            writing_data[i+3] = 1;
+        }
+        stbi_write_png(output_file, width, height, channels, writing_data, width*4);
+        free(writing_data);
         break;
+    }
     case JPG:
-        stbi_write_jpg(output_file, width, height, channels, data, 100);
+        stbi_write_jpg(output_file, width, height, channels, image_data, 100);
         break;
     default:
         printf("Output file type not found!\n");
-        free(data);
+        free(image_data);
         return false;
         break;
     }
-    free(data);
+
+    free(image_data);
     return true;
 }
 
